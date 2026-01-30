@@ -79,7 +79,7 @@ crash happens After presisting the payment state - (NO PROBLEM) if idempotency i
           ↓
           DB (Payment_Intent Table)
            
-          PSP (external call.)
+          PSP (external call)
           ↓
           ↓
     ← ← ← ← → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → → 

@@ -1,17 +1,16 @@
 package http
 
 import (
-	"database/sql"
 	"net/http"
 
 	intentService "github.com/susidharan/payment-orchestration-system/internal/payment/intent"
 )
 
-func NewRouter(db *sql.DB) http.Handler {
+func NewRouter(repo intentService.PaymentRepository) http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/payments", func(w http.ResponseWriter, r *http.Request) {
-		intentService.CreatePayment(w, r, db)
+		intentService.CreatePayment(w, r, repo)
 	})
 
 	return mux

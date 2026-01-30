@@ -7,10 +7,22 @@ import (
 	"github.com/google/uuid"
 )
 
-// create the Create Payment Intent Table
-func CreatePaymentIntentTable(db *sql.DB) {
+type PaymentRepository interface {
+	PersistPaymentRequest(req CreatePaymentRequest) (paymentID string, created bool, err error)
+	CreatePaymentIntentTable() error
+}
+type repo struct {
+	db *sql.DB
+}
 
-	_, err := db.Exec(`CREATE TABLE IF NOT EXISTS  payment.payment_intent(
+func NewPaymentRepository(db *sql.DB) PaymentRepository {
+	return &repo{db: db}
+}
+
+// create the Create Payment Intent Table
+func (r *repo) CreatePaymentIntentTable() error {
+
+	_, err := r.db.Exec(`CREATE TABLE IF NOT EXISTS  payment.payment_intent(
 		payment_id UUID PRIMARY KEY,
 		idempotency_key TEXT UNIQUE,
 		status TEXT NOT NULL CHECK (
@@ -25,11 +37,13 @@ func CreatePaymentIntentTable(db *sql.DB) {
 	if err != nil {
 		log.Println(err)
 		log.Panic(err)
+		return err
 	}
+	return nil
 }
 
 // create payment request
-func PersistPaymentRequest(db *sql.DB, req CreatePaymentRequest) (string, bool, error) {
+func (r *repo) PersistPaymentRequest(req CreatePaymentRequest) (string, bool, error) {
 	created := true
 	paymentId := generatePaymentID()
 	query := `INSERT INTO payment.payment_intent (payment_id,idempotency_key,status,amount,currency,psp_name) VALUES ($1,$2,'CREATED',$3,$4,$5)
@@ -37,9 +51,9 @@ func PersistPaymentRequest(db *sql.DB, req CreatePaymentRequest) (string, bool, 
 	DO NOTHING
 	RETURNING payment_id;`
 	var id string
-	err := db.QueryRow(query, paymentId, req.IdempotencyKey, req.Amount, req.Currency, req.PspName).Scan(&id)
+	err := r.db.QueryRow(query, paymentId, req.IdempotencyKey, req.Amount, req.Currency, req.PspName).Scan(&id)
 	if err == sql.ErrNoRows {
-		err = db.QueryRow(`SELECT payment_id FROM payment.payment_intent WHERE idempotency_key=$1`, req.IdempotencyKey).Scan(&id)
+		err = r.db.QueryRow(`SELECT payment_id FROM payment.payment_intent WHERE idempotency_key=$1`, req.IdempotencyKey).Scan(&id)
 		created = false
 		if err != nil {
 			return "", created, err

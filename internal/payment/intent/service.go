@@ -2,7 +2,6 @@ package intent
 
 import (
 	"bytes"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -10,7 +9,7 @@ import (
 	"net/http"
 )
 
-func CreatePayment(w http.ResponseWriter, r *http.Request, db *sql.DB) {
+func CreatePayment(w http.ResponseWriter, r *http.Request, repo PaymentRepository) {
 	//check the method name
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -35,7 +34,7 @@ func CreatePayment(w http.ResponseWriter, r *http.Request, db *sql.DB) {
 		return
 	}
 	// Create the payment Request
-	id, created, err := PersistPaymentRequest(db, req)
+	id, created, err := repo.PersistPaymentRequest(req)
 	if err != nil {
 		log.Print(err)
 		ErrorResponse(w, http.StatusServiceUnavailable, "temporary server error, try again later")

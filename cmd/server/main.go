@@ -7,17 +7,27 @@ import (
 
 	internaldb "github.com/susidharan/payment-orchestration-system/internal/database"
 	internalhttp "github.com/susidharan/payment-orchestration-system/internal/http"
-	"github.com/susidharan/payment-orchestration-system/internal/payment/intent"
+	paymentIntent "github.com/susidharan/payment-orchestration-system/internal/payment/intent"
+	worker "github.com/susidharan/payment-orchestration-system/internal/worker"
 )
 
 func main() {
 	db := internaldb.New()
 	defer db.Close()
 
-	// Create tables
-	intent.CreatePaymentIntentTable(db)
+	// get payment Repo
+	paymentRepo := paymentIntent.NewPaymentRepository(db)
+	err := paymentRepo.CreatePaymentIntentTable() // Create tables
+	if err != nil {
+		log.Fatal("Table creation Failed")
+	}
 
-	router := internalhttp.NewRouter(db)
+	// get Worker Repo
+	workerRepo := worker.NewWorkerRepository(db)
+	//start paymentWorker poll
+	go worker.StartWorkers(workerRepo)
+
+	router := internalhttp.NewRouter(paymentRepo)
 	port := 8080
 	adr := fmt.Sprintf(":%v", port)
 	srv := &http.Server{
@@ -25,7 +35,7 @@ func main() {
 		Handler: router,
 	}
 	// start server
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+	if err = srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Println("http server error:", err)
 	}
 }
