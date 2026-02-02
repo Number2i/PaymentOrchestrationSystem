@@ -134,7 +134,7 @@ PSP API(Not Trustable)
 Crash discussion
 
 Crash after CREATED → PROCESSING and before PSP call
- - No side effect occurred. Payment may remain stuck indefinitely. This is a liveness issue handled by timeout/cancellation policy. Correctness is preserved.
+  - No side effect occurred. Payment may remain stuck indefinitely. This is a liveness issue handled by timeout/cancellation policy. Correctness is preserved.
 Crash after PSP call and before persisting PROCESSING → UNKNOWN
  - A PSP side effect may have occurred. Truth exists in the PSP ledger. Webhook or reconciliation can record the ledger fact, and the projector can repair state if it was not updated. Correctness is preserved.
 
@@ -270,8 +270,19 @@ Data Base Schema
 
 
 
-*****Use Stripe sandbox because it lets you deterministically test failure, webhooks, and reconciliation exactly like production **
+Retry Policy 
+* The system decides “stuck payments” using time, not truth.
+* A timeout may mark a payment FAILED as a policy decision, not a truth assertion.
+* sA user retry creates a new payment intent; multiple successes are acceptable and resolved later via refunds, not by blocking truth.
 
+Principle:
+The system is designed so mistakes are detectable and fixable, not hidden.
+
+
+*****Used Stripe sandbox because it lets you deterministically test failure, webhooks, and reconciliation exactly like production **
+
+
+****I optimized for correctness under failure first; liveness and UX are layered later****
           
           
 
